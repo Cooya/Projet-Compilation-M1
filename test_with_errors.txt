@@ -1,0 +1,59 @@
+class hey {
+	static id: integer;
+
+
+	ab list of structure {
+		flo: ^^^integer;
+		bastien: string;
+	};
+
+	~hey() {
+		return a;
+	}
+
+
+	function salut(b: integer): integer {
+	/*
+		lmc,kdlmckdlmcdkcd
+		cdclmkclmdkcd
+		dlcsdmckghf   &s ĉ
+	*/
+		a:inger;
+		a=-2;
+		c:integer;
+		c=+b;
+		c=a+b/d*15645;
+		ab.flo = "ha\"ha";
+		ab->bastien = "ok\n";
+
+		toto->tata.titi = 'o';
+
+		// jxskljxsklx;;!:;jxpo
+
+	/*	toto = ~(a & (a<<b)); */
+		toto = (tata++) - 2;
+
+		i++;
+
+		tata = *****xkls[54];
+		toto = &aba[hey];
+
+		return c;
+	}
+
+	static procedure tgflo() {
+		t : list of integer;
+		t = [1, 2, 3, 4, 5];
+		foreach i in [0, 1, 2, 3, 4] {
+			afficher(i);
+		}
+		repeat{
+			afficher(i);
+		}while(true)
+		q.getfils()->haha;
+
+		q;
+
+		hey = 0x45;
+	}	
+}

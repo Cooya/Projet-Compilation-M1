@@ -1,0 +1,274 @@
+import java_cup.runtime.*;
+import semantic.EnvironmentsStack;
+import semantic.Type;
+import semantic.Listof;
+import semantic.SimpleType;
+import semantic.SimpleTypeEnum;
+import semantic.Pointer;
+import semantic.Class;
+import semantic.Structure;
+import semantic.Typedef;
+import semantic.Product;
+import semantic.TypeName;
+import semantic.Function;
+import semantic.CompilationException;
+
+action code
+{:
+	EnvironmentsStack stack = new EnvironmentsStack();
+	
+	private void newFunction(Object name, Product params, Type returnType) throws CompilationException {
+		Function fct = new Function(params, returnType);
+		stack.newSymbol(name.toString(), fct, null);
+		stack.pushEnv("function " + name.toString());
+		stack.newSymbol(name.toString(), fct, null);
+	}
+:};
+
+parser code
+{:
+	public void report_error(String message, Object info) {}
+
+	public void syntax_error(Symbol cur_token) {
+		if(cur_token.value != null)
+			System.err.println("syntax error line " + (cur_token.left + 1) + " column " + (cur_token.right + 1) + " symbol '" + cur_token.value + "'");
+		else
+			System.err.println("syntax error line " + (cur_token.left + 1) + " column " + (cur_token.right + 1));
+		System.err.println("");
+	}
+:};
+
+
+terminal OPAR, CPAR, OBRAC, CBRAC, OBRACK, CBRACK, PLUS, PLUSEQ, INC, MINUS, MINUSEQ, DEC, STAR, DIV, MOD, SEMIC, COMMA, DOT, ARROW, LESS, MORE, LESSEQ, MOREEQ, EQ, EQTEST, DIFF, AND, OR, COLON, TILDE, AMPER, PIPE, CIRCON, LSHIFT, RSHIFT;
+terminal TRUE, FALSE, NULL;
+terminal INT, CHAR, FLOAT, BOOL, STR, FCT, PROC, LISTOF, TYPE, STRUCT, STATIC, CLASS;
+terminal RETURN, STOP, BREAK;
+terminal IF, ELSE, WHILE, FOR, IN, REPEAT;
+terminal ID, NB, STR_LIT, CHAR_LIT, HEX;
+
+non terminal statements_block, comparison_operator, boolean_exp, conditional_statement, loop, statements, arguments_list, stopping;
+non terminal identifier, var_definition, var_declaration, struct_definition, type_declaration, definition, class_body, class, expression;
+non terminal assignment_operator, unary_operator, binary_operator;
+non terminal list, numbers_list, accessor, head_accessor, body_accessor, body_elt_accessor, accessor_operator, array_accessor, array_index, pointers_sequence, accessible;
+non terminal function_definition, prototype_return_function, void_function, prototype_void_function, function_call, destructor;
+
+non terminal Type type_specifier;
+non terminal Product structure;
+non terminal Product structure_block;
+non terminal Product parameters_list;
+
+precedence left PLUS, MINUS, STAR, DIV, MOD, SEMIC, AMPER, PIPE, CIRCON, LSHIFT, RSHIFT, TILDE, INC, DEC;
+
+start with class;
+
+stopping ::=					RETURN expression SEMIC
+								| STOP SEMIC
+								| BREAK SEMIC
+								;
+
+assignment_operator ::=			EQ
+								| PLUSEQ
+								| MINUSEQ
+								;
+
+unary_operator ::=				INC
+								| DEC
+								;
+
+binary_operator ::=				PLUS
+								| MINUS
+								| STAR
+								| DIV
+								| MOD
+								| AMPER
+								| PIPE
+								| CIRCON
+								| LSHIFT
+								| RSHIFT
+								;
+
+								
+comparison_operator	::=			LESS
+								| MORE
+								| LESSEQ
+								| MOREEQ
+								| EQTEST
+								| DIFF
+								;
+
+statements_block ::=			OBRAC statements CBRAC
+								;							
+
+conditional_statement ::=		IF OPAR boolean_exp CPAR statements_block
+								| IF OPAR boolean_exp CPAR statements_block ELSE statements_block
+								;
+
+loop ::=						FOR ID IN accessor statements_block	
+								| FOR ID IN list statements_block	
+								| WHILE OPAR boolean_exp CPAR statements_block
+								| REPEAT statements_block WHILE boolean_exp
+								;
+
+statements ::=					var_declaration statements
+								| struct_definition statements
+								| type_declaration statements
+								| var_definition statements
+								| loop statements
+								| conditional_statement statements
+								| accessor SEMIC statements
+								| stopping statements
+								| statements_block
+								| /* empty */
+								;	
+								
+arguments_list ::=				arguments_list COMMA expression
+								| expression
+								; 
+
+parameters_list ::=				parameters_list:params COMMA ID COLON type_specifier:type {: RESULT = params.add(type); :}
+								| ID COLON type_specifier:type {: RESULT = new Product(type); :}
+								;
+
+prototype_void_function ::=		ID:name OPAR parameters_list:params CPAR {: newFunction(name, params, null); :}
+								| ID:name OPAR CPAR {: newFunction(name, null, null); :}
+								;
+								
+destructor ::=					TILDE ID:name OPAR parameters_list:params CPAR {: newFunction("~" + name, params, null); :}
+								| TILDE ID:name OPAR CPAR {: newFunction("~" + name, null, null); :}
+								;
+								
+void_function ::=				prototype_void_function
+								| destructor
+								| STATIC prototype_void_function
+								| PROC prototype_void_function
+								| STATIC PROC prototype_void_function
+								;
+
+prototype_return_function ::=	FCT ID:name OPAR parameters_list:params CPAR COLON type_specifier:returnType {: newFunction(name, params, returnType); :}
+								| FCT ID:name OPAR CPAR COLON type_specifier:returnType {: newFunction(name, null, returnType); :}
+								;
+
+function_definition ::=			prototype_return_function statements_block {: stack.popEnv(); :}
+								| STATIC prototype_return_function statements_block {: stack.popEnv(); :}
+								| void_function statements_block {: stack.popEnv(); :} /* constructeur */
+								;
+
+function_call ::=				ID OPAR arguments_list CPAR
+								| ID OPAR CPAR
+								;
+
+boolean_exp ::=					boolean_exp AND expression
+								| boolean_exp OR expression
+								| boolean_exp comparison_operator expression
+								| expression
+								;
+
+expression ::=					expression binary_operator expression
+								| unary_operator expression
+								| expression unary_operator
+								| TILDE expression /* TILDE placé ici pour régler un conflit */
+								| OPAR expression CPAR
+								| identifier
+								;
+
+accessible ::=					ID
+								| ID array_accessor
+								;
+
+array_index ::=					accessible
+								| NB
+								;
+
+array_accessor ::=				array_accessor OBRACK array_index CBRACK
+								| OBRACK array_index CBRACK
+								;
+
+accessor_operator ::= 			DOT
+								| ARROW
+								;
+
+pointers_sequence ::=			pointers_sequence STAR
+								| STAR
+								;
+
+head_accessor ::=				body_elt_accessor
+								| AMPER accessible
+								;
+
+body_elt_accessor ::=			accessible
+								| function_call
+								| pointers_sequence accessible
+								;
+
+body_accessor ::=				body_accessor accessor_operator body_elt_accessor
+								| body_elt_accessor
+								;
+
+accessor ::=					head_accessor accessor_operator body_accessor
+								| head_accessor
+								;
+
+list ::=						OBRACK numbers_list CBRACK
+								;
+
+numbers_list ::=				numbers_list COMMA NB
+								| NB
+								;
+
+identifier ::=					accessor
+								| NB
+								| STR_LIT	
+								| CHAR_LIT
+								| HEX
+								| TRUE
+								| FALSE
+								| NULL
+								;
+								
+structure_block ::=				structure_block:product ID:id COLON type_specifier:type SEMIC {: RESULT = new Product(product, new Product(new TypeName(id.toString()), type)); :}
+								| ID:id COLON type_specifier:type SEMIC {: RESULT = new Product(new TypeName(id.toString()), type); :}
+								;
+
+structure ::=					STRUCT OBRAC structure_block:product CBRAC {: RESULT = product; :}
+								;
+																
+type_specifier ::=				CIRCON type_specifier:type {: RESULT = new Pointer(type); :}	
+								| INT {: RESULT = new SimpleType(SimpleTypeEnum.Integer); :}
+								| CHAR {: RESULT = new SimpleType(SimpleTypeEnum.Character); :}
+								| FLOAT {: RESULT = new SimpleType(SimpleTypeEnum.Float); :}	
+								| BOOL {: RESULT = new SimpleType(SimpleTypeEnum.Boolean); :}
+								| STR {: RESULT = new SimpleType(SimpleTypeEnum.String); :}
+								| LISTOF type_specifier:type {: RESULT = new Listof(type); :}
+								| structure:product {: RESULT = new Structure(product); :}
+								/* | STRUCT ID:id {:  :} */
+								;
+
+/* déclaration de nouveaux types */
+type_declaration ::=			TYPE ID:id EQ type_specifier:type SEMIC {: stack.newSymbol(id.toString(), type); :}
+								;
+
+var_definition ::=				accessor assignment_operator expression SEMIC
+								| accessor assignment_operator list SEMIC
+								| accessor unary_operator SEMIC
+								| unary_operator accessor SEMIC
+								| error SEMIC
+								;
+
+var_declaration ::=				ID:id COLON type_specifier:type SEMIC {: stack.newSymbol(id.toString(), type); :}
+								| STATIC ID:id COLON type_specifier:type SEMIC {: stack.newSymbol(id.toString(), type); :}
+								;
+
+definition ::= 					function_definition
+								| type_declaration
+								| var_declaration
+								| var_definition
+								| struct_definition
+								| class
+								;
+
+class_body ::=					class_body definition
+								| definition
+								;
+
+class ::=						CLASS ID:id OBRAC {: stack.pushEnv("class " + id.toString()); stack.newSymbol(id.toString(), new Class(id.toString())); :} class_body {: stack.popEnv(); :} CBRAC
+								;

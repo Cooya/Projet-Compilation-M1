@@ -1,0 +1,337 @@
+import java_cup.runtime.*;
+import stree.*;
+
+action code
+{:
+	private static Stree tree;
+	public static semantic.EnvironmentsStack stack = tree.stack;
+	
+	private void newFunction(String name, semantic.Product params, semantic.Type returnType) throws exceptions.CompilationException {
+		stack.newSymbol(name, new semantic.Function(params, returnType), null);
+		stack.pushEnv(name, new semantic.Function(params, returnType));
+		stack.newSymbol(name, new semantic.Function(params, returnType), null);
+	}
+:};
+
+parser code
+{:
+	public void report_error(String message, Object info) {}
+
+	public void syntax_error(Symbol cur_token) {
+		if(cur_token.value != null)
+			System.err.println("Syntax error line " + (cur_token.left + 1) + " column " + (cur_token.right + 1) + " symbol '" + cur_token.value + "'");
+		else
+			System.err.println("Syntax error line " + (cur_token.left + 1) + " column " + (cur_token.right + 1));
+		System.err.println("");
+	}
+:};
+
+
+terminal OPAR, CPAR, OBRAC, CBRAC, OBRACK, CBRACK, PLUS, PLUSEQ, INC, MINUS, MINUSEQ, DEC, STAR, DIV, MOD, SEMIC, COMMA, DOT, ARROW;
+terminal LESS, MORE, LESSEQ, MOREEQ, EQ, EQTEST, DIFF, AND, OR, COLON, TILDE, AMPER, PIPE, CIRCON, LSHIFT, RSHIFT;
+terminal TRUE, FALSE, NULL;
+terminal INT, CHAR, FLOAT, BOOL, STR, FCT, PROC, LISTOF, TYPE, STRUCT, STATIC, CLASS;
+terminal RETURN, STOP, BREAK;
+terminal IF, ELSE, WHILE, FOR, IN, REPEAT;
+terminal NB, STR_LIT, CHAR_LIT, HEX;
+
+terminal String ID;
+
+non terminal stree.Class class;
+non terminal stree.Class internal_class;
+non terminal ClassBody class_body;
+non terminal Definition definition;
+non terminal VarDeclaration var_declaration;
+non terminal VarDefinition var_definition;
+non terminal TypeDeclaration type_declaration;
+non terminal TypeSpecifier type_specifier;
+non terminal Structure structure;
+non terminal StructFields structure_block;
+non terminal Identifier identifier;
+non terminal NumbersList list;
+non terminal NumbersList numbers_list;
+non terminal Accessor accessor;
+non terminal Accessor body_accessor;
+non terminal Accessor body_elt_accessor;
+non terminal Accessor head_accessor;
+non terminal Pointer pointers_sequence;
+non terminal AccessorOperator accessor_operator;
+non terminal ArrayAccessor array_accessor;
+non terminal ArrayIndex array_index;
+non terminal Accessible accessible;
+non terminal Expression expression;
+non terminal FunctionCall function_call;
+non terminal FunctionDefinition function_definition;
+non terminal Prototype prototype_return_function;
+non terminal Prototype void_function;
+non terminal Prototype destructor;
+non terminal Prototype prototype_void_function;
+non terminal ParametersList parameters_list;
+non terminal ArgumentsList arguments_list;
+non terminal StatementsBlock statements_block;
+non terminal StatementsBlock statements;
+non terminal Statement statement;
+non terminal Loop loop;
+non terminal ConditionalStatement conditional_statement;
+non terminal StopStatement stop_statement;
+non terminal BooleanOperator boolean_operator;
+non terminal ComparisonOperator comparison_operator;
+non terminal BinaryOperator binary_operator;
+non terminal UnaryOperator unary_operator;
+non terminal AssignmentOperator assignment_operator;
+
+precedence left PLUS, MINUS, STAR, DIV, MOD, SEMIC, AMPER, PIPE, CIRCON, LSHIFT, RSHIFT, TILDE, INC, DEC;
+precedence left LESS, MORE, AND, OR, LESSEQ, MOREEQ, EQTEST, DIFF;
+
+start with class;
+
+assignment_operator ::=			EQ {: RESULT = new AssignmentOperator(Tag.AFF); :}
+								| PLUSEQ {: RESULT = new AssignmentOperator(Tag.PLUSEQ); :}
+								| MINUSEQ {: RESULT = new AssignmentOperator(Tag.MINUSEQ); :}
+								;
+
+unary_operator ::=				INC {: RESULT = new UnaryOperator(Tag.INC); :}
+								| DEC {: RESULT = new UnaryOperator(Tag.DEC); :}
+								| TILDE {: RESULT = new UnaryOperator(Tag.TILDE); :}  
+								;
+
+binary_operator ::=				PLUS {: RESULT = new BinaryOperator(Tag.PLUS); :}
+								| MINUS {: RESULT = new BinaryOperator(Tag.MINUS); :}
+								| STAR {: RESULT = new BinaryOperator(Tag.STAR); :}
+								| DIV {: RESULT = new BinaryOperator(Tag.DIV); :}
+								| MOD {: RESULT = new BinaryOperator(Tag.MOD); :}
+								| AMPER {: RESULT = new BinaryOperator(Tag.AMPER); :}
+								| PIPE {: RESULT = new BinaryOperator(Tag.PIPE); :}
+								| CIRCON {: RESULT = new BinaryOperator(Tag.CIRCON); :}
+								| LSHIFT {: RESULT = new BinaryOperator(Tag.LSHIFT); :}
+								| RSHIFT {: RESULT = new BinaryOperator(Tag.RSHIFT); :}
+								;
+								
+comparison_operator	::=			LESS {: RESULT = new ComparisonOperator(Tag.LT); :}
+								| MORE {: RESULT = new ComparisonOperator(Tag.GT); :}
+								| LESSEQ {: RESULT = new ComparisonOperator(Tag.LE); :}
+								| MOREEQ {: RESULT = new ComparisonOperator(Tag.GE); :}
+								| EQTEST {: RESULT = new ComparisonOperator(Tag.EQ); :}
+								| DIFF {: RESULT = new ComparisonOperator(Tag.DIFF); :}
+								;
+								
+boolean_operator ::=			AND {: RESULT = new BooleanOperator(Tag.AND); :}
+								| OR {: RESULT = new BooleanOperator(Tag.OR); :}
+								;	
+								
+stop_statement ::=				RETURN expression:exp SEMIC {: RESULT = new StopStatement(Tag.RETURN, exp); :}
+								| STOP SEMIC {: RESULT = new StopStatement(Tag.STOP); :}
+								| BREAK SEMIC {: RESULT = new StopStatement(Tag.BREAK); :}
+								;					
+
+conditional_statement ::=		IF OPAR expression:exp CPAR statements_block:block
+								{: RESULT = new If(exp, block); :}
+								| IF OPAR expression:exp CPAR statements_block:block1 ELSE statements_block:block2
+								{: RESULT = new IfElse(new If(exp, block1), block2); :}
+								;
+
+loop ::=						FOR ID:name IN accessor:accessor statements_block:block
+								{: RESULT = new Foreach(new Name(name), accessor, block); :}
+								| FOR ID:name IN list:list statements_block:block
+								{: RESULT = new Foreach(new Name(name), list, block); :}
+								| WHILE OPAR expression:exp CPAR statements_block:block
+								{: RESULT = new While(exp, block); :}
+								| REPEAT statements_block:block WHILE expression:exp SEMIC
+								{: RESULT = new Repeat(block, exp); :}
+								;
+								
+statement ::=					var_declaration:dec {: RESULT = dec; :}
+								| type_declaration:dec {: RESULT = dec; :}
+								| var_definition:def {: RESULT = def; :}
+								| loop:loop {: RESULT = loop; :}
+								| conditional_statement:cond {: RESULT = cond; :}
+								| stop_statement:stop {: RESULT = stop; :}
+								| function_call:fct SEMIC {: RESULT = fct.toStatement(); :}
+								;
+								
+statements ::=					statements:statements statement:statement {: RESULT = statements.add(statement); :}
+								| statement:statement {: RESULT = new StatementsBlock(statement); :}
+								;
+								
+statements_block ::=			OBRAC statements:block CBRAC {: RESULT = block; :}
+								| OBRAC CBRAC {: RESULT = new StatementsBlock(new EmptyBlock()); :}
+								;
+								
+arguments_list ::=				arguments_list:list COMMA expression:exp {: RESULT = list.add(exp); :}
+								| expression:exp {: RESULT = new ArgumentsList(exp); :}
+								;
+
+parameters_list ::=				parameters_list:list COMMA ID:name COLON type_specifier:type
+								{: RESULT = list.add(new Parameter(new Name(name), type)); :}
+								| ID:name COLON type_specifier:type
+								{: RESULT = new ParametersList(new Parameter(new Name(name), type)); :}
+								;
+
+prototype_void_function ::=		ID:name OPAR parameters_list:params CPAR
+								{: newFunction(name, params.getProduct(), null);
+								RESULT = new Prototype(new Name(name), new FunctionParameters(params)); :}
+								| ID:name OPAR CPAR
+								{: newFunction(name, null, null);
+								RESULT = new Prototype(new Name(name), new FunctionParameters()); :}
+								;
+								
+destructor ::=					TILDE ID:name OPAR parameters_list:params CPAR
+								{: newFunction("~" + name, params.getProduct(), null);
+								RESULT = new Prototype(new Name("~" + name), new FunctionParameters(params)); :}
+								| TILDE ID:name OPAR CPAR
+								{: newFunction("~" + name, null, null);
+								RESULT = new Prototype(new Name("~" + name), new FunctionParameters()); :}
+								;
+								
+void_function ::=				prototype_void_function:prototype {: RESULT = prototype; :}
+								| destructor:prototype {: RESULT = prototype; :}
+								| PROC prototype_void_function:prototype {: RESULT = prototype; :}
+								| STATIC PROC prototype_void_function:prototype {: RESULT = new StaticMethod(prototype); :}
+								;
+
+prototype_return_function ::=	FCT ID:name OPAR parameters_list:params CPAR COLON type_specifier:returnType
+								{: newFunction(name, params.getProduct(), returnType.getType());
+								RESULT = new Prototype(new Name(name), new FunctionParameters(params, new ReturnType(returnType))); :}
+								| FCT ID:name OPAR CPAR COLON type_specifier:returnType
+								{: newFunction(name, null, returnType.getType());
+								RESULT = new Prototype(new Name(name), new FunctionParameters(new ReturnType(returnType))); :}
+								;
+
+function_definition ::=			prototype_return_function:prototype statements_block:block
+								{: stack.popEnv(); RESULT = new FunctionDefinition(prototype, block); :}
+								| STATIC prototype_return_function:prototype statements_block:block
+								{: stack.popEnv(); RESULT = new FunctionDefinition(new StaticMethod(prototype), block); :}
+								| void_function:prototype statements_block:block
+								{: stack.popEnv(); RESULT = new FunctionDefinition(prototype, block); :}
+								;
+
+function_call ::=				ID:name OPAR arguments_list:list CPAR {: RESULT = new FunctionCall(new Name(name + "()"), list); :}
+								| ID:name OPAR CPAR {: RESULT = new FunctionCall(new Name(name + "()")); :}
+								;
+
+expression ::=					expression:exp1 binary_operator:operator expression:exp2 {: RESULT = new BinaryOperation(operator, exp1, exp2); :}
+								| expression:exp1 boolean_operator:operator expression:exp2 {: RESULT = new BooleanOperation(operator, exp1, exp2); :}
+								| expression:exp1 comparison_operator:operator expression:exp2 {: RESULT = new ComparisonOperation(operator, exp1, exp2); :}
+								| unary_operator:operator expression:exp {: RESULT = new UnaryOperation(operator, exp); :}
+								| expression:exp unary_operator:operator {: RESULT = new UnaryOperation(operator, exp); :}
+								| OPAR expression:exp CPAR {: RESULT = exp; :}
+								| identifier:identifier {: RESULT = identifier; :}
+								;
+
+accessible ::=					ID:name {: RESULT = new Accessible(new Name(name)); :}
+								| ID:name array_accessor:array {: RESULT = new Accessible(new Name(name), array); :}
+								;
+
+array_index ::=					accessible:accessible {: RESULT = new ArrayIndex(accessible); :}
+								| NB:number {: RESULT = new ArrayIndex(new stree.Number(number)); :}
+								;
+
+array_accessor ::=				array_accessor:array OBRACK array_index:index CBRACK {: RESULT = new ArrayAccessor(array, index); :}
+								| OBRACK array_index:index CBRACK {: RESULT = new ArrayAccessor(index); :}
+								;
+
+accessor_operator ::= 			DOT {: RESULT = new AccessorOperator(Tag.DOT); :}
+								| ARROW {: RESULT = new AccessorOperator(Tag.ARROW); :}
+								;
+
+pointers_sequence ::=			pointers_sequence:pointer STAR {: RESULT = new Pointer(pointer); :}
+								| STAR {: RESULT = new Pointer(); :}
+								;
+
+head_accessor ::=				body_elt_accessor:accessor {: RESULT = accessor; :}
+								| AMPER accessible:accessible {: RESULT = new Accessible(Tag.AMPER, accessible); :}
+								;
+
+body_elt_accessor ::=			accessible:accessible {: RESULT = accessible; :}
+								| function_call:fct {: RESULT = fct.toAccessor(); :}
+								| pointers_sequence:pointer accessible:accessible {: RESULT = new Accessible(pointer, accessible); :}
+								;
+
+body_accessor ::=				body_accessor:body accessor_operator:operator body_elt_accessor:elt
+								{: RESULT = new AccessorOperation(operator, body, elt); :}
+								| body_elt_accessor:elt {: RESULT = elt; :}
+								;
+
+accessor ::=					head_accessor:head accessor_operator:operator body_accessor:body
+								{: RESULT = new AccessorOperation(operator, head, body); :}
+								| head_accessor:accessor {: RESULT = accessor; :}
+								;
+
+list ::=						OBRACK numbers_list:list CBRACK {: RESULT = list; :}
+								;
+
+numbers_list ::=				numbers_list:list COMMA NB:number {: RESULT = list.add(new stree.Number(number)); :} 
+								| NB:number {: RESULT = new NumbersList(new stree.Number(number)); :}
+								;
+
+identifier ::=					accessor:accessor {: RESULT = accessor; :}
+								| NB:number {: RESULT = new stree.Number(number); :}
+								| STR_LIT:str {: RESULT = new Str(str); :}	
+								| CHAR_LIT:character {: RESULT = new stree.Character(character); :}
+								| HEX:hex {: RESULT = new Hexadecimal(hex); :}
+								| TRUE {: RESULT = new stree.Boolean(true); :}
+								| FALSE {: RESULT = new stree.Boolean(false); :}
+								| NULL {: RESULT = new Null(); :}
+								;
+								
+structure_block ::=				structure_block:fields ID:name COLON type_specifier:type SEMIC
+								{: RESULT = new StructFields(fields, new VarDeclaration(new Name(name), type)); :}
+								| ID:name COLON type_specifier:type SEMIC
+								{: RESULT = new StructFields(new VarDeclaration(new Name(name), type)); :}
+								;
+
+structure ::=					STRUCT OBRAC structure_block:fields CBRAC {: RESULT = new Structure(fields); :}
+								;
+																
+type_specifier ::=				INT {: RESULT = new TypeSpecifier(Tag.INTEGER); :}
+								| CHAR {: RESULT = new TypeSpecifier(Tag.CHARACTER); :}
+								| FLOAT {: RESULT = new TypeSpecifier(Tag.FLOAT); :}	
+								| BOOL {: RESULT = new TypeSpecifier(Tag.BOOL); :}
+								| STR {: RESULT = new TypeSpecifier(Tag.STRING); :}
+								| CIRCON type_specifier:type {: RESULT = new TypeSpecifier(Tag.POINTER, type); :}
+								| LISTOF type_specifier:type {: RESULT = new TypeSpecifier(Tag.LISTOF, type); :}
+								| structure:structure {: RESULT = structure; :}
+								/* | STRUCT ID:name {:  :} */
+								;
+
+/* déclaration de nouveaux types */
+type_declaration ::=			TYPE ID:name EQ type_specifier:type SEMIC
+								{: RESULT = new TypeDeclaration(new Name(name), type); :}
+								;
+
+var_definition ::=				accessor:accessor assignment_operator:operator expression:exp SEMIC
+								{: RESULT = new VarDefinition(operator, accessor, exp); :}
+								| accessor:accessor assignment_operator:operator list:list SEMIC
+								{: RESULT = new VarDefinition(operator, accessor, list); :}
+								| accessor:accessor unary_operator:operator SEMIC
+								{: RESULT = new VarDefinition(operator, accessor); :}
+								/*| unary_operator:operator accessor:accessor SEMIC
+								{: RESULT = new VarDefinition(operator, accessor); :}*/ /* conflit avec le destructeur */
+								| error SEMIC
+								{: RESULT = new DefinitionError(); :}
+								;
+
+var_declaration ::=				ID:name COLON type_specifier:type SEMIC
+								{: stack.newSymbol(name, type.getType()); RESULT = new VarDeclaration(new Name(name), type); :}
+								| STATIC ID:name COLON type_specifier:type SEMIC
+								{: stack.newSymbol(name, type.getType()); RESULT = new StaticAttribute(new VarDeclaration(new Name(name), type)); :}
+								;
+								
+internal_class::=               CLASS ID:name OBRAC {: stack.pushEnv(name, new semantic.Class(name)); stack.newSymbol(name, new semantic.Class(name)); :}
+								class_body:body CBRAC {: stack.popEnv(); RESULT = new stree.Class(new Name(name), body); :}
+								;
+
+definition ::= 					function_definition:fct {: RESULT = fct; :}
+								| type_declaration:dec {: RESULT = dec; :}
+								| var_declaration:dec {: RESULT = dec; :}
+								| var_definition:def {: RESULT = def; :}
+								| internal_class:intClass {: RESULT = intClass; :}
+								;
+
+class_body ::=					class_body:body definition:def {: RESULT = new ClassBody(body, def); :}
+								| definition:def {: RESULT = new ClassBody(def); :}
+								;
+
+class ::=						CLASS ID:name OBRAC {: stack.pushEnv(name, new semantic.Class(name)); stack.newSymbol(name, new semantic.Class(name)); :}
+								class_body:body CBRAC {: stack.popEnv(); tree = new stree.Class(new Name(), body); tree.toDot("tmp.dot"); :}
+								;

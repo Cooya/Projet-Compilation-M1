@@ -1,0 +1,111 @@
+class hey {
+	id: integer;
+	toc: boolean;
+	toc = false;
+	
+	type hola = structure {
+		haha: string;
+	};
+	
+	type bx = list of integer;
+	
+	cd: structure {
+		heyy: integer;
+		test : float;
+	};
+
+
+	ab: list of structure {
+		flo: ^^^integer;
+		bastien: string;
+	};
+	
+	function toto(a: float, b: string): integer {
+		return 10;
+	}
+
+	~heyy() {
+		cd.test  = 0.1;
+		a: integer;
+		a = toto(10.5, "test");
+		a++;
+		c: ^integer;
+		c++;
+		//bx = null;
+		heyy: boolean;
+		cd.heyy = 10;
+		akf : boolean;
+		akf = true;
+		return akf;
+	}
+	
+	procedure ab() {
+		ab: integer;
+	}
+
+
+	function salut(b: integer, ola: string, tqt: list of ^^string): integer {
+	/*
+		lmc,kdlmckdlmcdkcd
+		cdclmkclmdkcd
+		dlcsdmckghf   &s ĉ
+	*/
+		//zey();
+	
+		a:integer;
+		b:integer;
+		a:string;
+		
+		xkls: float;
+		
+		a = toto(2.5, "jkc");
+		b = 5;
+		c:boolean;
+		toto: float;
+		
+		tata:float;
+		toto = (tata++) - 2.3;
+		
+		i:integer;
+
+		i++;
+		
+		titi: ^^^^^float;	
+		
+		hey: integer;	
+		
+		aba: list of string;
+
+		titi = *****xkls;
+		
+		tete: character;
+		tete = aba[hey];
+
+		return c;
+	}
+	
+	salut: character;
+	salut: character;
+	
+	procedure afficher(i:integer) {
+	
+	}
+	
+	static procedure bonjour() {
+		t : list of integer;
+		//t = [1, 2, 3, 4, 5];
+		hey:character;
+
+		hey = 0x45;
+		
+		a:integer;
+		b:float;
+		
+		if(a && b) {
+			a~;
+		}
+		else {
+			b++;
+		}
+	}	
+}

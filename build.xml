@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="Compiler project" default="default">
+  <property name="JFlexLib" location="lib" />
+  <property name="CUPLib" location="lib" />
+  <property name="lib.dir" location="lib" />
+  <property name="src.dir" location="src" />
+  <property name="bin.dir" location="bin" />
+  <property name="parser.dir" location="parser" />
+  <property name="lexer.dir" location="lexer" />
+  
+  <description>
+    compilation du projet Compiler
+  </description>
+  
+  <!-- ================================= 
+       target: default              
+       ================================= -->
+  <target name="default" depends="compiler" description="exécution">
+    
+    <java classname="Main" classpath=".:${bin.dir}:${lib.dir}/java-cup-11a-runtime.jar">
+      <arg value="test.txt"/>
+    </java>
+    <exec executable="/bin/sh">
+		<arg value="-c" />
+		<arg value="dot -Tps tmp.dot -o outfile.ps"/>
+    </exec>
+    
+  </target>
+  
+  <!-- ================================= 
+       target: compiler             
+       ================================= -->
+  <target name="compiler" depends="parser, lexer" description="compilation">
+    <mkdir dir="${bin.dir}" />
+    <javac 
+	srcdir="${src.dir}"
+	destdir="${bin.dir}" 
+	classpath="${lib.dir}/java-cup-11a-runtime.jar" 
+	debug="on"
+  includeantruntime="false" />
+    
+  </target>
+  
+  <!-- =================================
+       target: lexer
+       ================================= -->
+  <target name="lexer" description="Compilation du lexeur">
+    
+    <taskdef name="jflex" classname="JFlex.anttask.JFlexTask">
+      <classpath location="${JFlexLib}/JFlex.jar" />
+    </taskdef>
+    
+    <jflex 
+	file="${lexer.dir}/lexer.jflex" 
+	destdir="${src.dir}"/>
+  </target>
+  
+  <!-- ================================= 
+       target: parser              
+       ================================= -->
+  <target name="parser" description="Compilation du parseur">
+    
+    <taskdef name="cup" classname="java_cup.anttask.CUPTask">
+      <classpath location="${CUPLib}/java-cup-11a.jar" />
+    </taskdef>
+    
+    <cup 
+	srcfile="${parser.dir}/parser.cup"
+	destdir="${src.dir}"
+	parser="CompilerParser"
+	symbols="CompilerSymbol"
+	dump_grammar="true" />
+  </target>
+
+  <target name="test" depends="compiler" description="Exécution du fichier de test contenant des erreurs de syntaxe">
+    
+    <java classname="Main" classpath=".:${bin.dir}:${lib.dir}/java-cup-11a-runtime.jar">
+      <arg value="test_with_errors.txt"/>
+    </java>
+    
+  </target>
+  
+</project>
